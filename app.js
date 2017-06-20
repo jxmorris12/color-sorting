@@ -26,7 +26,7 @@ var generateRandomRainbowArray = function(arrLength) {
 }
 
 var generateRandomColor = function() { 
-  return parseInt(255 * Math.random());
+  return parseInt(200 * Math.random()) + 55;
 }
 
 var clearCanvas = function(random) {
@@ -42,7 +42,7 @@ var clearCanvas = function(random) {
       imgData.data[4 * (i * ch + j) + 0] = random ? generateRandomColor() : rainbowArray[j].r;
       imgData.data[4 * (i * ch + j) + 1] = random ? generateRandomColor() : rainbowArray[j].g;
       imgData.data[4 * (i * ch + j) + 2] = random ? generateRandomColor() : rainbowArray[j].b;
-      imgData.data[4 * (i * ch + j) + 3] = 255;
+      imgData.data[4 * (i * ch + j) + 3] = generateRandomColor();
     }
   }
 
