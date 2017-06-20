@@ -3,13 +3,19 @@
 <title> color sort </title>
   <body>
     <canvas id="myCanvas" width="300" height="300" style="border: 1px solid #e0e0e0"> Your browser does not support the HTML5 canvas tag. </canvas>
+    <script src="helpers.js"></script>
     <script src="app.js"></script>
-    <div> <!-- button container -->
-      <button onclick="clearCanvas()">Clear</button>
-      <button onclick="startBubbleSort()">bubbleSort</button>
+    <div id="buttonContainer"> <!-- button container -->
+      <button onclick="clearCanvas()">clear (discrete)</button>
+      <button onclick="randomizeCanvas()">clear (random)</button>
+      <h6> sorts </h6>
+      <button onclick="startBubbleSort()">bubble</button>
+      <button onclick="startInsertionSort()">insertion</button>
     </div>
     <div>
-      <h6>pixels changed: <span id="pixelCount">0</span></h6>
+      <h6>pixels changed: <br> 
+        <span id="pixelCount" style="font-weight: normal">0</span>
+      </h6>
     </div>
 	</body>
 </html>

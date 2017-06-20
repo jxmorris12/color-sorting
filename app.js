@@ -1,33 +1,56 @@
 //
-//jack morris, 06/19/17
+////////////////// jack morris, 06/19/17
 //
 
 
+// Constants
+var animationStepInterval = 100; /* ms */
+
+// Things to know globally
 var c = document.getElementById("myCanvas");
 var cw = c.width;
 var ch = c.height;
 var ctx = c.getContext("2d");
-
 var timerId;
 
-var randomRgbVal = function() {
-  return parseInt(Math.random() * 255);
+// Numbers that the sorts need to know
+var insertionSortIndex;
+
+var generateRandomRainbowArray = function(arrLength) {
+  let arr = [];
+  for(let x = 0; x < arrLength; x++) {
+    arr.push(rainbow(arrLength, x));
+  }
+  arr.shuffle();
+  return arr;
 }
 
-var clearCanvas = function() {
+var generateRandomColor = function() { 
+  return parseInt(255 * Math.random());
+}
+
+var clearCanvas = function(random) {
   
   var imgData = ctx.createImageData(cw,ch);
 
+  let rainbowArray;
   for(let i = 0; i < cw; i++) {
+    if(!random) {
+      rainbowArray = generateRandomRainbowArray(ch);
+    }
     for(let j = 0; j < ch; j++) {
-      imgData.data[4 * (i * ch + j) + 0] = randomRgbVal();
-      imgData.data[4 * (i * ch + j) + 1] = randomRgbVal();
-      imgData.data[4 * (i * ch + j) + 2] = randomRgbVal();
+      imgData.data[4 * (i * ch + j) + 0] = random ? generateRandomColor() : rainbowArray[j].r;
+      imgData.data[4 * (i * ch + j) + 1] = random ? generateRandomColor() : rainbowArray[j].g;
+      imgData.data[4 * (i * ch + j) + 2] = random ? generateRandomColor() : rainbowArray[j].b;
       imgData.data[4 * (i * ch + j) + 3] = 255;
     }
   }
 
   ctx.putImageData(imgData,0,0);
+}
+
+var randomizeCanvas = function() {
+  clearCanvas(true);
 }
 
 function bubbleSortPixels()
@@ -85,14 +108,13 @@ function bubbleSortPixels()
         pix[4 * (i * hues[0].length + j - 1) + 1] = g;
         pix[4 * (i * hues[0].length + j - 1) + 2] = b;
         pix[4 * (i * hues[0].length + j - 1) + 3] = a;
-        
+
       }
     }
   }
 
   // Update pixel count display
-  let changedPixelPercentage = changedPixelCount / parseFloat(cw * ch);
-  document.getElementById('pixelCount').innerHTML = _percFormat(changedPixelCount);
+  updatePixelCount(changedPixelCount);
 
   // Cancel timer if no pixels changed
   if(changedPixelCount == 0) {
@@ -104,63 +126,125 @@ function bubbleSortPixels()
   ctx.putImageData(imgData, 0, 0);
 }
 
+
+function insertionSortPixels()
+{
+  insertionSortIndex++;
+  console.log(insertionSortIndex);
+
+  let imgData = ctx.getImageData(0, 0, cw, ch);
+  let pix     = imgData.data;
+  let hues = [];
+
+  // Get all hues
+  for(let i = 0; i < cw; i++) {
+    let theseHues = [];
+    for(let j = 0; j < ch; j++) {
+
+      // Get RGB data
+      let r = imgData.data[4 * (i * ch + j) + 0]
+      let g = imgData.data[4 * (i * ch + j) + 1]
+      let b = imgData.data[4 * (i * ch + j) + 2]
+      let a = imgData.data[4 * (i * ch + j) + 3]
+
+      // Get HSV from RGB
+      let hsv = rgbToHsv(r, g, b);
+      let h = hsv.h;
+      let s = hsv.s;
+      let v = hsv.v;
+
+      // Store hue
+      theseHues.push(h);
+    }
+    hues.push(theseHues);
+  }
+
+  // 'Insertion sort' hues in image data
+  let changedPixelCount = 0;
+  let _L = hues[0].length;
+
+  for(let i = 0; i < hues.length; i++) {
+    j = insertionSortIndex;
+    while((hues[i][j] < hues[i][j-1]) && j > 0) {
+        
+      // Increment counter
+
+      changedPixelCount++;
+
+      // Swap pixels in actual imgData model
+        
+      let r = pix[4 * (i * _L + j) + 0];
+      let g = pix[4 * (i * _L + j) + 1];
+      let b = pix[4 * (i * _L + j) + 2];
+      let a = pix[4 * (i * _L + j) + 3];
+      
+      pix[4 * (i * _L + j) + 0] =  pix[4 * (i * _L + j - 1) + 0];
+      pix[4 * (i * _L + j) + 1] =  pix[4 * (i * _L + j - 1) + 1];
+      pix[4 * (i * _L + j) + 2] =  pix[4 * (i * _L + j - 1) + 2];
+      pix[4 * (i * _L + j) + 3] =  pix[4 * (i * _L + j - 1) + 3];
+
+      pix[4 * (i * _L + j - 1) + 0] = r;
+      pix[4 * (i * _L + j - 1) + 1] = g;
+      pix[4 * (i * _L + j - 1) + 2] = b;
+      pix[4 * (i * _L + j - 1) + 3] = a;
+
+      // Swap hues
+      let h = hues[i][j];
+      hues[i][j] = hues[i][j-1];
+      hues[i][j-1] = h;
+
+      // Move one pixel to the left
+      j --;
+    }
+  }
+
+  // Update pixel count display
+  updatePixelCount(changedPixelCount);
+
+  // Cancel timer if no pixels changed
+  if(changedPixelCount == 0) {
+    endCurrentSort();
+    return;
+  }
+
+  // Put image data back to canvas
+  ctx.putImageData(imgData, 0, 0);
+}
+
+var setButtonsDisabled = function(disabledBool) {
+  let buttons = document.getElementById('buttonContainer').children;
+  /* document.get... returns an HtmlCollection, not an Array. Here's a trick to
+   * use forEach on this collection. 
+   */ buttons.forEach = [].forEach;
+  buttons.forEach(button => {
+    button.disabled = disabledBool;
+  });
+}
+
+var startInsertionSort = function() {
+  insertionSortIndex = 0;
+  startSort(insertionSortPixels);
+}
+
 var startBubbleSort = function() {
-  timerId = setInterval(bubbleSortPixels, 100);
+  startSort(bubbleSortPixels);
+}
+
+var updatePixelCount = function(changedPixelCount) {
+  let changedPixelPercentage = changedPixelCount / parseFloat(cw * ch);
+  document.getElementById('pixelCount').innerHTML = _percFormat(changedPixelPercentage);
+}
+
+var startSort = function(sortFunction) {
+  timerId = setInterval(sortFunction, animationStepInterval);
   console.log(`Started timer ${timerId}.`);
+  setButtonsDisabled(true);
+}
+
+var endCurrentSort = function() {
+  clearInterval(timerId);
+  timerId = null;
+  setButtonsDisabled(false);
 }
 
 clearCanvas();
-
-///*** external helpers ***///
-
-// format decimal as percentage
-function _percFormat (perc) {
-  let percString = (perc*100).toString();
-  let decimalPlacePos = percString.indexOf('.');
-  let lastAllowedCharPos = Math.min(decimalPlacePos + 2, percString.length);
-  return percString.substr(0,lastAllowedCharPos) + '%';
-}
-
-
-// convert rgb color to hsv
-// thanks to https://stackoverflow.com/questions/8022885/rgb-to-hsv-color-in-javascript
-
-function rgbToHsv () {
-    var rr, gg, bb,
-        r = arguments[0] / 255,
-        g = arguments[1] / 255,
-        b = arguments[2] / 255,
-        h, s,
-        v = Math.max(r, g, b),
-        diff = v - Math.min(r, g, b),
-        diffc = function(c){
-            return (v - c) / 6 / diff + 1 / 2;
-        };
-
-    if (diff == 0) {
-        h = s = 0;
-    } else {
-        s = diff / v;
-        rr = diffc(r);
-        gg = diffc(g);
-        bb = diffc(b);
-
-        if (r === v) {
-            h = bb - gg;
-        }else if (g === v) {
-            h = (1 / 3) + rr - bb;
-        }else if (b === v) {
-            h = (2 / 3) + gg - rr;
-        }
-        if (h < 0) {
-            h += 1;
-        }else if (h > 1) {
-            h -= 1;
-        }
-    }
-    return {
-        h: Math.round(h * 360),
-        s: Math.round(s * 100),
-        v: Math.round(v * 100)
-    };
-}
